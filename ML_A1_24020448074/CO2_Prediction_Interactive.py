@@ -38,6 +38,18 @@ mae_fuel = None
 mse_fuel = None
 rmse_fuel = None
 r2_fuel = None
+X_multi = None
+X_train_multi = None
+X_test_multi = None
+y_train_multi = None
+y_test_multi = None
+regressor_multi = None
+y_pred_multi = None
+accuracy_multi = None
+mae_multi = None
+mse_multi = None
+rmse_multi = None
+r2_multi = None
 viz_dir = "visualizations"
 model_dir = "models"
 
@@ -47,7 +59,7 @@ model_dir = "models"
 
 def block_1_import_libraries():
     """Block 1: Import Libraries"""
-    global np, pd, plt, train_test_split, LinearRegression, mean_absolute_error, mean_squared_error, r2_score, pickle
+    global np, pd, plt, train_test_split, LinearRegression, RandomForestRegressor, mean_absolute_error, mean_squared_error, r2_score, pickle
     
     print("\n" + "="*80)
     print("BLOCK 1: Import Libraries")
@@ -59,13 +71,14 @@ def block_1_import_libraries():
         import matplotlib.pyplot as plt
         from sklearn.model_selection import train_test_split
         from sklearn.linear_model import LinearRegression
+        from sklearn.ensemble import RandomForestRegressor
         from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
         import pickle
         
         print("✓ NumPy imported successfully")
         print("✓ Pandas imported successfully")
         print("✓ Matplotlib imported successfully")
-        print("✓ Scikit-learn imported successfully")
+        print("✓ Scikit-learn (LinearRegression, RandomForest) imported successfully")
         print("✓ Pickle imported successfully")
         print("\n✓ All libraries imported successfully!")
         return True
@@ -86,7 +99,8 @@ def block_2_load_dataset():
     
     # Get the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(script_dir, DATA_FILE)
+    data_path = os.path.join(script_dir, DATA_FILE)0
+    
     
     try:
         df = pd.read_csv(data_path)
@@ -492,12 +506,12 @@ def block_13_test_fuel_predictions():
     return True
 
 def block_14_compare_models():
-    """Block 14: Compare Models"""
+    """Block 14: Compare Linear Regression Models"""
     global mae_engine, mse_engine, rmse_engine, r2_engine, accuracy_engine
     global mae_fuel, mse_fuel, rmse_fuel, r2_fuel, accuracy_fuel
     
     print("\n" + "="*80)
-    print("BLOCK 14: Model Comparison")
+    print("BLOCK 14: Linear Regression Model Comparison")
     print("="*80)
     
     if r2_engine is None or r2_fuel is None:
@@ -515,12 +529,228 @@ def block_14_compare_models():
     }
     
     comparison_df = pd.DataFrame(comparison_data)
-    print("\n📊 Model Performance Comparison:")
+    print("\n📊 Single Feature Model Performance:")
     print(comparison_df.to_string(index=False))
     
     best = 'Engine Size' if r2_engine > r2_fuel else 'Fuel Consumption'
     best_r2 = max(r2_engine, r2_fuel)
-    print(f"\n🏆 Best Model: {best} (R²={best_r2:.4f})")
+    print(f"\n🏆 Best Single Feature Model: {best} (R²={best_r2:.4f})")
+    
+    return True
+
+def block_15_train_multi_model():
+    """Block 15: Train Multiple Linear Regression Model (Engine + Fuel)"""
+    global cdf, y, X_multi, X_train_multi, X_test_multi, y_train_multi, y_test_multi, regressor_multi
+    
+    print("\n" + "="*80)
+    print("BLOCK 15: Train Multiple Linear Regression - ENGINE + FUEL")
+    print("="*80)
+    
+    if cdf is None:
+        print("✗ Error: Features not selected. Run Block 4 first.")
+        return False
+    
+    # Prepare data with both features
+    X_multi = cdf[['ENGINESIZE', 'FUELCONSUMPTION_COMB']].values
+    
+    # Split data
+    X_train_multi, X_test_multi, y_train_multi, y_test_multi = train_test_split(
+        X_multi, y, test_size=0.2, random_state=42
+    )
+    
+    print(f"📊 Data Split: {X_train_multi.shape}, {X_test_multi.shape}")
+    print(f"  Features: Engine Size + Fuel Consumption")
+    
+    # Train model
+    regressor_multi = LinearRegression()
+    regressor_multi.fit(X_train_multi, y_train_multi)
+    
+    print(f"\n✓ Model trained successfully!")
+    print(f"  Coefficient (Engine): {regressor_multi.coef_[0]:.4f}")
+    print(f"  Coefficient (Fuel): {regressor_multi.coef_[1]:.4f}")
+    print(f"  Intercept: {regressor_multi.intercept_:.4f}")
+    print(f"  Equation: CO2 = {regressor_multi.coef_[0]:.4f} × Engine + {regressor_multi.coef_[1]:.4f} × Fuel + {regressor_multi.intercept_:.4f}")
+    
+    return True
+
+def block_16_evaluate_multi_model():
+    """Block 16: Evaluate Multiple Linear Regression Model"""
+    global regressor_multi, X_test_multi, y_test_multi, y_pred_multi, accuracy_multi, mae_multi, mse_multi, rmse_multi, r2_multi, viz_dir
+    
+    print("\n" + "="*80)
+    print("BLOCK 16: Evaluate Model - ENGINE + FUEL")
+    print("="*80)
+    
+    if regressor_multi is None:
+        print("✗ Error: Model not trained. Run Block 15 first.")
+        return False
+    
+    # Predict
+    y_pred_multi = regressor_multi.predict(X_test_multi)
+    
+    # Calculate metrics
+    accuracy_multi = regressor_multi.score(X_test_multi, y_test_multi)
+    mae_multi = mean_absolute_error(y_test_multi, y_pred_multi)
+    mse_multi = mean_squared_error(y_test_multi, y_pred_multi)
+    rmse_multi = np.sqrt(mse_multi)
+    r2_multi = r2_score(y_test_multi, y_pred_multi)
+    
+    print(f"\n📊 Model Performance:")
+    print(f"  Accuracy (R²): {accuracy_multi:.4f}")
+    print(f"  MAE: {mae_multi:.2f}")
+    print(f"  MSE: {mse_multi:.2f}")
+    print(f"  RMSE: {rmse_multi:.2f}")
+    print(f"  R² Score: {r2_multi:.4f}")
+    
+    print(f"\n💡 Model explains {r2_multi*100:.2f}% of variance")
+    
+    # Visualize - Actual vs Predicted
+    plt.figure(figsize=(10, 6))
+    plt.scatter(y_test_multi, y_pred_multi, color='blue', alpha=0.5)
+    plt.plot([y_test_multi.min(), y_test_multi.max()], 
+             [y_test_multi.min(), y_test_multi.max()], 
+             'r--', linewidth=2, label='Perfect Prediction')
+    plt.xlabel("Actual CO2 Emissions (g/km)", fontsize=12, fontweight='bold')
+    plt.ylabel("Predicted CO2 Emissions (g/km)", fontsize=12, fontweight='bold')
+    plt.title(f'Multiple Linear Regression: Actual vs Predicted (R²={r2_multi:.4f})', 
+              fontsize=14, fontweight='bold')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f'{viz_dir}/model_multi_testing.png', dpi=300, bbox_inches='tight')
+    print(f"\n  ✓ Saved: {viz_dir}/model_multi_testing.png")
+    plt.show()
+    
+    return True
+
+def block_17_save_multi_model():
+    """Block 17: Save Multiple Linear Regression Model"""
+    global regressor_multi, model_dir
+    
+    print("\n" + "="*80)
+    print("BLOCK 17: Save Model - ENGINE + FUEL")
+    print("="*80)
+    
+    if regressor_multi is None:
+        print("✗ Error: Model not trained. Run Block 15 first.")
+        return False
+    
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    
+    filename = f'{model_dir}/co2_multi_model.pkl'
+    with open(filename, 'wb') as f:
+        pickle.dump(regressor_multi, f)
+    
+    print(f"✓ Model saved: {filename}")
+    print(f"  Size: {os.path.getsize(filename)} bytes")
+    
+    return True
+
+def block_18_test_multi_predictions():
+    """Block 18: Test Multiple Linear Regression Predictions"""
+    global regressor_multi
+    
+    print("\n" + "="*80)
+    print("BLOCK 18: Sample Predictions - ENGINE + FUEL")
+    print("="*80)
+    
+    if regressor_multi is None:
+        print("✗ Error: Model not trained. Run Block 15 first.")
+        return False
+    
+    print("\n🔮 Sample Predictions:")
+    samples = [
+        (2.0, 8.5),   # Small engine, low fuel
+        (3.5, 11.0),  # Medium engine, medium fuel
+        (5.0, 13.5),  # Large engine, high fuel
+        (6.5, 16.0)   # Very large engine, very high fuel
+    ]
+    
+    for engine, fuel in samples:
+        pred = regressor_multi.predict([[engine, fuel]])
+        print(f"  Engine {engine}L + Fuel {fuel}L/100km → CO2: {pred[0]:.2f} g/km")
+    
+    return True
+
+def block_19_compare_all_models():
+    """Block 19: Compare All Models (Engine, Fuel, Multi)"""
+    global mae_engine, mse_engine, rmse_engine, r2_engine, accuracy_engine
+    global mae_fuel, mse_fuel, rmse_fuel, r2_fuel, accuracy_fuel
+    global mae_multi, mse_multi, rmse_multi, r2_multi, accuracy_multi
+    
+    print("\n" + "="*80)
+    print("BLOCK 19: COMPREHENSIVE MODEL COMPARISON")
+    print("="*80)
+    
+    if r2_engine is None or r2_fuel is None:
+        print("✗ Error: Engine and Fuel models must be evaluated first.")
+        print("  Run Blocks 7 and 11.")
+        return False
+    
+    # Prepare comparison data
+    models = ['Linear Reg (Engine)', 'Linear Reg (Fuel)']
+    mae_vals = [mae_engine, mae_fuel]
+    mse_vals = [mse_engine, mse_fuel]
+    rmse_vals = [rmse_engine, rmse_fuel]
+    r2_vals = [r2_engine, r2_fuel]
+    accuracy_vals = [accuracy_engine, accuracy_fuel]
+    
+    if r2_multi is not None:
+        models.append('Linear Reg (Engine+Fuel)')
+        mae_vals.append(mae_multi)
+        mse_vals.append(mse_multi)
+        rmse_vals.append(rmse_multi)
+        r2_vals.append(r2_multi)
+        accuracy_vals.append(accuracy_multi)
+    
+    comparison_data = {
+        'Model': models,
+        'MAE': mae_vals,
+        'MSE': mse_vals,
+        'RMSE': rmse_vals,
+        'R²': r2_vals,
+        'Accuracy': accuracy_vals
+    }
+    
+    comparison_df = pd.DataFrame(comparison_data)
+    print("\n📊 Model Performance Comparison:")
+    print(comparison_df.to_string(index=False))
+    
+    # Find best model
+    best_idx = r2_vals.index(max(r2_vals))
+    best_model = models[best_idx]
+    best_r2 = r2_vals[best_idx]
+    print(f"\n🏆 Best Model: {best_model} (R²={best_r2:.4f})")
+    
+    # Print detailed analysis
+    print("\n" + "="*80)
+    print("MODEL ANALYSIS & RECOMMENDATIONS")
+    print("="*80)
+    
+    print("\n1️⃣ LINEAR REGRESSION - ENGINE SIZE (R² = {:.4f})".format(r2_engine))
+    print("   Pros: ✅ Simple | ✅ Fast | ✅ Interpretable")
+    print("   Cons: ❌ Lower accuracy | ❌ Single feature limitation")
+    print("   Use When: Quick estimates, interpretability critical")
+    
+    print("\n2️⃣ LINEAR REGRESSION - FUEL CONSUMPTION (R² = {:.4f})".format(r2_fuel))
+    print("   Pros: ✅ Good accuracy | ✅ Simple | ✅ Strong correlation")
+    print("   Cons: ❌ Single feature | ❌ Slightly less accurate than multi-feature")
+    print("   Use When: Fuel data available, balance of simplicity and accuracy")
+    
+    if r2_multi is not None:
+        print("\n3️⃣ MULTIPLE LINEAR REGRESSION - ENGINE + FUEL (R² = {:.4f})".format(r2_multi))
+        print("   Pros: ✅ Highest accuracy | ✅ Uses multiple features | ✅ Still interpretable")
+        print("   Cons: ❌ Requires both features | ❌ Slightly more complex")
+        print("   Use When: Both features available, maximum accuracy needed")
+        
+        improvement = ((r2_multi - max(r2_engine, r2_fuel)) / max(r2_engine, r2_fuel)) * 100
+        print(f"\n💡 Multi-feature model improves accuracy by {improvement:.2f}% over best single-feature model")
+    
+    print("\n" + "="*80)
+    print("RECOMMENDATION: Use Multiple Linear Regression for best results")
+    print("when both Engine Size and Fuel Consumption data are available.")
+    print("="*80)
     
     return True
 
@@ -534,15 +764,20 @@ BLOCKS = {
     3: ("Explore Data", block_3_explore_data),
     4: ("Feature Selection", block_4_feature_selection),
     5: ("Visualize Data", block_5_visualize_data),
-    6: ("Train Engine Model", block_6_train_engine_model),
+    6: ("Train Engine Model (Linear)", block_6_train_engine_model),
     7: ("Evaluate Engine Model", block_7_evaluate_engine_model),
     8: ("Save Engine Model", block_8_save_engine_model),
     9: ("Test Engine Predictions", block_9_test_engine_predictions),
-    10: ("Train Fuel Model", block_10_train_fuel_model),
+    10: ("Train Fuel Model (Linear)", block_10_train_fuel_model),
     11: ("Evaluate Fuel Model", block_11_evaluate_fuel_model),
     12: ("Save Fuel Model", block_12_save_fuel_model),
     13: ("Test Fuel Predictions", block_13_test_fuel_predictions),
-    14: ("Compare Models", block_14_compare_models),
+    14: ("Compare Single Feature Models", block_14_compare_models),
+    15: ("Train Multi-Feature Model (Engine+Fuel)", block_15_train_multi_model),
+    16: ("Evaluate Multi-Feature Model", block_16_evaluate_multi_model),
+    17: ("Save Multi-Feature Model", block_17_save_multi_model),
+    18: ("Test Multi-Feature Predictions", block_18_test_multi_predictions),
+    19: ("Compare ALL Models", block_19_compare_all_models),
 }
 
 def show_menu():
@@ -554,7 +789,7 @@ def show_menu():
     for num, (name, _) in BLOCKS.items():
         print(f"{num:2d}. {name}")
     
-    print("\n15. Run All Blocks")
+    print("\n20. Run All Blocks")
     print(" 0. Exit")
     print("="*80)
 
@@ -622,7 +857,7 @@ def main():
                 print("\n✓ Exiting. Goodbye!")
                 break
             
-            if user_input == '15':
+            if user_input == '20':
                 run_all_blocks()
                 continue
             
