@@ -410,7 +410,8 @@ This project is for educational purposes (Machine Learning Assignment).
 ---
 
 **Created:** January 2026  
-**Author:** Technical Student  
+**Author:** Sujitkumar Hujare
 **Assignment:** ML_A1_24020448074  
 **Language:** Python 3.7+  
 **Models:** Linear Regression (Single & Multiple Features)
+
